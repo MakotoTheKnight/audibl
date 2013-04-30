@@ -1,0 +1,19 @@
+#What is audibl?
+
+**audibl** is a music metadata parser that places emphasis on extensibility, flexibility, performance, and atomicity.
+
+We currently support:
+
+ - MP3
+ - Ogg Vorbis
+
+..and support for others is coming soon!
+
+
+Use of Song "Circle" in tests:
+
+This song was created by C418.  The terms for use are defined by a CC BY 3.0 license, which can be found at
+http://creativecommons.org/licenses/by/3.0/.
+
+ - C418 doesn't endorse the use of this track for this particular project.
+ - I, on the other hand, really like C418's music, so go check him out.
