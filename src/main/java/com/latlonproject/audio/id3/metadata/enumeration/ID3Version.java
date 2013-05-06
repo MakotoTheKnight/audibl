@@ -1,7 +1,7 @@
-package com.latlonproject.audio.id3.enumeration;
+package com.latlonproject.audio.id3.metadata.enumeration;
 
 public enum ID3Version {
-    V2_2(2),
+    V2_2(2), // Deprecated specification
     V2_3(3),
     V2_4(4);
 

@@ -1,8 +1,9 @@
-package com.latlonproject.audio.id3.field.impl;
+package com.latlonproject.audio.id3.impl;
 
 import com.latlonproject.audio.generic.InvalidMediaException;
 import com.latlonproject.audio.id3.MP3;
-import com.latlonproject.audio.id3.enumeration.ID3Version;
+import com.latlonproject.audio.id3.metadata.enumeration.ID3Version;
+import com.latlonproject.audio.id3.metadata.field.MP3Field;
 import com.latlonproject.audio.metadata.enumeration.FormatType;
 import com.latlonproject.audio.metadata.field.Field;
 import com.latlonproject.audio.metadata.field.FieldValue;
@@ -29,6 +30,8 @@ public class MP3Impl implements MP3 {
     private ID3Version id3Version;
     private Path filePath;
     private SeekableByteChannel fileByteChannel;
+    private boolean isExperimental = false;
+    private int tagSizeInBytes = 0;
 
     //TODO:  Abstract determining signature of file to factory?
     private final byte[] id3Signature = {'I', 'D', '3'};
@@ -43,10 +46,49 @@ public class MP3Impl implements MP3 {
         filePath = Paths.get(theFileUri);
         try {
             fileByteChannel = Files.newByteChannel(filePath, EnumSet.of(READ));
+            readFileHeaders();
+            readTags();
+            fileByteChannel.close();
         } catch (IOException e) {
             throw new IllegalStateException("IOException occurred while establishing byte channel!\n" + e);
         }
-        readFileHeaders();
+
+    }
+
+    /**
+     * Read the tags of the file.
+     */
+    private void readTags() {
+        ByteBuffer buffer = ByteBuffer.allocate(tagSizeInBytes);
+        try {
+            fileByteChannel.read(buffer);
+            // Delegate reading of frame headers
+            parseFrameHeaders(buffer);
+        } catch (IOException e) {
+            throw new IllegalStateException("Somehow failed to read buffer while reading tags.\n" + e);
+        }
+    }
+
+
+    /**
+     * For each element in the buffer that can be reasonably read as a tag, we need to do two things:
+     *  - Determine what the tags are, if present, and
+     *  - Place them into our tag map.
+     * @param theBuffer the byte buffer to be passed through
+     */
+    private void parseFrameHeaders(final ByteBuffer theBuffer) {
+        // first ten bytes are tag-related information.
+        byte[] tag = new byte[4];
+        byte[] size = new byte[4];
+        byte[] flags = new byte[2];
+        while(theBuffer.hasRemaining()) {
+            theBuffer.get(tag);
+            theBuffer.get(size);
+            theBuffer.get(flags);
+            Field field = new MP3Field();
+            field.setFieldName(new String(tag));
+        }
+
     }
 
     /**
@@ -73,7 +115,7 @@ public class MP3Impl implements MP3 {
             buffer.get(flags);
             buffer.get(size);
             determineFileVersion(version[0]);
-            processFlags(flags);
+            isExperimental = (flags[0] & 0x02) >> 1 == 1;
             processTagSize(size);
         } catch (IOException e) {
             System.out.println("Fail!" + e);
@@ -86,12 +128,16 @@ public class MP3Impl implements MP3 {
         }
     }
 
+    /**
+     * The specification for the ID3 size tag in the header is that there are up to 28 bits worth of information encoded
+     * in the space of 32.  What this means is that there is no MSB set on any of these frames.
+     * Translating is relatively straightforward - 255 is represented as 1111 1111, but encoded as 0000 0001 0111 1111.
+     * @param theSize The size field.
+     */
+
     private void processTagSize(final byte[] theSize) {
-
-    }
-
-    private void processFlags(final byte[] theFlags) {
-
+        tagSizeInBytes = (theSize[0] & 0xFF) | ((theSize[1] & 0xFF) << 7)
+                + ((theSize[2] & 0xFF) << 14) | ((theSize[3]) & 0xFF) << 21;
     }
 
     /**
