@@ -86,7 +86,7 @@ public class MP3Impl implements MP3 {
             theBuffer.get(tag);
             theBuffer.get(size);
             theBuffer.get(flags);
-            int fieldLength = toSynchsafeInteger(size);
+            int fieldLength = fromSynchSafeInteger(size);
             byte[] byteField = new byte[fieldLength];
             ByteBuffer frameBuffer = ByteBuffer.allocate(fieldLength);
             Field field = new MP3Field();
@@ -122,7 +122,7 @@ public class MP3Impl implements MP3 {
             buffer.get(size);
             determineFileVersion(version[0]);
             isExperimental = (flags[0] & 0x02) >> 1 == 1;
-            tagSizeInBytes = toSynchsafeInteger(size);
+            tagSizeInBytes = fromSynchSafeInteger(size);
         } catch (IOException e) {
             System.out.println("Fail!" + e);
         }
@@ -141,9 +141,14 @@ public class MP3Impl implements MP3 {
      * @param theSize The size field.
      */
 
-    private int toSynchsafeInteger(final byte[] theSize) {
+    private int fromSynchSafeInteger(final byte[] theSize) {
         return (theSize[0] & 0xFF) | ((theSize[1] & 0xFF) << 7)
-                + ((theSize[2] & 0xFF) << 14) | ((theSize[3]) & 0xFF) << 21;
+                | ((theSize[2] & 0xFF) << 14) | ((theSize[3]) & 0xFF) << 21;
+    }
+
+    private int toSynchSafeInteger(final byte[] theSynchSafeInteger) {
+        return (theSynchSafeInteger[0] & 0x7F) & ((theSynchSafeInteger[1] & 0x7F) >> 7)
+                & ((theSynchSafeInteger[2] & 0x7F) >> 14 ) & ((theSynchSafeInteger[3] & 0x7F) >> 21);
     }
 
     /**
