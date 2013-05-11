@@ -1,6 +1,7 @@
 package com.latlonproject.audio.id3.impl;
 
-import com.latlonproject.audio.generic.InvalidMediaException;
+import com.latlonproject.audio.generic.FieldValueImpl;
+import com.latlonproject.audio.generic.exception.InvalidMediaException;
 import com.latlonproject.audio.id3.MP3;
 import com.latlonproject.audio.id3.metadata.enumeration.ID3Version;
 import com.latlonproject.audio.id3.metadata.field.MP3Field;
@@ -85,10 +86,15 @@ public class MP3Impl implements MP3 {
             theBuffer.get(tag);
             theBuffer.get(size);
             theBuffer.get(flags);
+            int fieldLength = toSynchsafeInteger(size);
+            byte[] byteField = new byte[fieldLength];
+            ByteBuffer frameBuffer = ByteBuffer.allocate(fieldLength);
             Field field = new MP3Field();
+            FieldValue value = new FieldValueImpl();
             field.setFieldName(new String(tag));
+            frameBuffer.get(byteField);
+            value.setValue(new String(byteField));
         }
-
     }
 
     /**
@@ -116,7 +122,7 @@ public class MP3Impl implements MP3 {
             buffer.get(size);
             determineFileVersion(version[0]);
             isExperimental = (flags[0] & 0x02) >> 1 == 1;
-            processTagSize(size);
+            tagSizeInBytes = toSynchsafeInteger(size);
         } catch (IOException e) {
             System.out.println("Fail!" + e);
         }
@@ -135,8 +141,8 @@ public class MP3Impl implements MP3 {
      * @param theSize The size field.
      */
 
-    private void processTagSize(final byte[] theSize) {
-        tagSizeInBytes = (theSize[0] & 0xFF) | ((theSize[1] & 0xFF) << 7)
+    private int toSynchsafeInteger(final byte[] theSize) {
+        return (theSize[0] & 0xFF) | ((theSize[1] & 0xFF) << 7)
                 + ((theSize[2] & 0xFF) << 14) | ((theSize[3]) & 0xFF) << 21;
     }
 

@@ -1,4 +1,4 @@
-package com.latlonproject.audio.generic;
+package com.latlonproject.audio.generic.exception;
 
 public class InvalidMediaException extends RuntimeException {
 
