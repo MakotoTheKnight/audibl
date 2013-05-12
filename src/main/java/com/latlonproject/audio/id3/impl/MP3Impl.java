@@ -1,5 +1,6 @@
 package com.latlonproject.audio.id3.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.latlonproject.audio.generic.FieldValueImpl;
 import com.latlonproject.audio.generic.exception.InvalidMediaException;
 import com.latlonproject.audio.id3.MP3;
@@ -16,12 +17,11 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
-
-import static java.nio.file.StandardOpenOption.READ;
 
 public class MP3Impl implements MP3 {
 
@@ -32,7 +32,7 @@ public class MP3Impl implements MP3 {
     private Path filePath;
     private SeekableByteChannel fileByteChannel;
     private boolean isExperimental = false;
-    private int tagSizeInBytes = 0;
+    private boolean readOnly = true;
 
     //TODO:  Abstract determining signature of file to factory?
     private final byte[] id3Signature = {'I', 'D', '3'};
@@ -46,9 +46,10 @@ public class MP3Impl implements MP3 {
     public void read(final URI theFileUri) {
         filePath = Paths.get(theFileUri);
         try {
-            fileByteChannel = Files.newByteChannel(filePath, EnumSet.of(READ));
-            readFileHeaders();
-            readTags();
+            fileByteChannel = Files.newByteChannel(filePath, EnumSet.of(StandardOpenOption.READ));
+            int tagSize = readFileHeaders();
+            ByteBuffer tagBuffer = readTags(tagSize);
+            parseFrameHeaders(tagBuffer);
             fileByteChannel.close();
         } catch (IOException e) {
             throw new IllegalStateException("IOException occurred while establishing byte channel!\n" + e);
@@ -59,15 +60,16 @@ public class MP3Impl implements MP3 {
     /**
      * Read the tags of the file.
      */
-    private void readTags() {
-        ByteBuffer buffer = ByteBuffer.allocate(tagSizeInBytes);
+    @VisibleForTesting
+    ByteBuffer readTags(int theTagSize) {
+        ByteBuffer buffer = ByteBuffer.allocate(theTagSize);
         try {
             fileByteChannel.read(buffer);
             // Delegate reading of frame headers
-            parseFrameHeaders(buffer);
         } catch (IOException e) {
-            throw new IllegalStateException("Somehow failed to read buffer while reading tags.\n" + e);
+            throw new IllegalStateException("Buffer allocated, but unable to populate milliseconds later\n" + e);
         }
+        return buffer;
     }
 
 
@@ -77,7 +79,8 @@ public class MP3Impl implements MP3 {
      *  - Place them into our tag map.
      * @param theBuffer the byte buffer to be passed through
      */
-    private void parseFrameHeaders(final ByteBuffer theBuffer) {
+    @VisibleForTesting
+     void parseFrameHeaders(final ByteBuffer theBuffer) {
         // first ten bytes are tag-related information.
         byte[] tag = new byte[4];
         byte[] size = new byte[4];
@@ -101,10 +104,13 @@ public class MP3Impl implements MP3 {
      * Read the file headers in to the object.
      * These will determine what version of the ID3 spec is being used.
      *
+     * @return the overall size of the tags, in bytes.
      */
-    private void readFileHeaders() {
+    @VisibleForTesting
+    int readFileHeaders() {
         // According to the ID3 spec, the first ten bytes are the header.
         // The first three are always ID3.
+        int tagSize = 0;
         try {
             ByteBuffer buffer = ByteBuffer.allocate(10);
             byte[] signature = new byte[3];
@@ -122,13 +128,15 @@ public class MP3Impl implements MP3 {
             buffer.get(size);
             determineFileVersion(version[0]);
             isExperimental = (flags[0] & 0x02) >> 1 == 1;
-            tagSizeInBytes = fromSynchSafeInteger(size);
+            tagSize = fromSynchSafeInteger(size);
         } catch (IOException e) {
             System.out.println("Fail!" + e);
         }
+        return tagSize;
     }
 
-    private void checkID3Signature(final byte[] theSignature) {
+    @VisibleForTesting
+    void checkID3Signature(final byte[] theSignature) {
         if(!Arrays.equals(theSignature, id3Signature)) {
             throw new InvalidMediaException("Not an ID3 file!");
         }
@@ -141,14 +149,16 @@ public class MP3Impl implements MP3 {
      * @param theSize The size field.
      */
 
-    private int fromSynchSafeInteger(final byte[] theSize) {
-        return (theSize[0] & 0xFF) | ((theSize[1] & 0xFF) << 7)
-                | ((theSize[2] & 0xFF) << 14) | ((theSize[3]) & 0xFF) << 21;
+    @VisibleForTesting
+    int fromSynchSafeInteger(final byte[] theSize) {
+        return (theSize[3] & 0xFF) | ((theSize[2] & 0xFF) << 7)
+                | ((theSize[1] & 0xFF) << 14) | ((theSize[0]) & 0xFF) << 21;
     }
 
-    private int toSynchSafeInteger(final byte[] theSynchSafeInteger) {
-        return (theSynchSafeInteger[0] & 0x7F) & ((theSynchSafeInteger[1] & 0x7F) >> 7)
-                & ((theSynchSafeInteger[2] & 0x7F) >> 14 ) & ((theSynchSafeInteger[3] & 0x7F) >> 21);
+    //TODO:  This should be implemented when we support read-write tags.
+    @VisibleForTesting
+    int toSynchSafeInteger(final byte[] theSynchSafeInteger) {
+        throw new UnsupportedOperationException("Will need to be implemented to support read-write tags.");
     }
 
     /**
@@ -157,7 +167,9 @@ public class MP3Impl implements MP3 {
      * and sets the correct version.
      * @param theVersionValue the first byte value read in
      */
-    private void determineFileVersion(final byte theVersionValue) {
+
+    @VisibleForTesting
+     void determineFileVersion(final byte theVersionValue) {
         for(ID3Version version : ID3Version.values()) {
             if((theVersionValue ^ version.getVersionNum()) == 0) {
                 id3Version = version;
@@ -194,7 +206,11 @@ public class MP3Impl implements MP3 {
 
     @Override
     public URI getFilePathURI() {
-
         return filePath.toAbsolutePath().toUri();
+    }
+
+    @Override
+    public boolean isReadOnly() {
+        return readOnly;
     }
 }

@@ -13,6 +13,8 @@ public interface Media {
 
     public Long getFileSize();
 
+    public boolean isReadOnly();
+
     public Map<Field, Set<FieldValue>> getFieldMap();
 
     public FormatType getFormatType();
