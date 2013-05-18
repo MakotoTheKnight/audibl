@@ -81,7 +81,7 @@ public class MP3ImplMockTest {
         int tagSize = 100;
 
         //when
-        when(fileByteChannelMock.read(byteBufferMock)).thenReturn(Integer.valueOf(100));
+        when(fileByteChannelMock.read(byteBufferMock)).thenReturn(100);
         testObject.readTags(tagSize);
 
         //then

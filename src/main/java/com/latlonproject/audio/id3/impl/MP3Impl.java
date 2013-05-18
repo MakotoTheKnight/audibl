@@ -1,7 +1,8 @@
 package com.latlonproject.audio.id3.impl;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.latlonproject.audio.generic.FieldValueImpl;
+import com.latlonproject.audio.metadata.annotation.Impl;
+import com.latlonproject.audio.metadata.field.impl.FieldValueImpl;
 import com.latlonproject.audio.generic.exception.InvalidMediaException;
 import com.latlonproject.audio.id3.MP3;
 import com.latlonproject.audio.id3.metadata.enumeration.ID3Version;
@@ -23,6 +24,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
+@Impl
 public class MP3Impl implements MP3 {
 
     private Map<Field, Set<FieldValue>> fields;
