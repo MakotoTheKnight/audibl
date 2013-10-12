@@ -1,5 +1,6 @@
 package com.latlonproject.audio.id3.impl;
 
+import com.latlonproject.audio.generic.exception.UnsupportedVersionException;
 import com.latlonproject.audio.id3.metadata.enumeration.ID3Version;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +14,8 @@ import org.mockito.runners.MockitoJUnitRunner;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -26,7 +29,6 @@ public class MP3ImplMockTest {
     @Mock
     private SeekableByteChannel fileByteChannelMock;
 
-    @Spy
     @InjectMocks
     private MP3Impl testObject;
 
@@ -45,8 +47,7 @@ public class MP3ImplMockTest {
         int result = testObject.fromSynchSafeInteger(testData);
 
         //then
-        assertTrue("Synchsafe integer decoding is not working appropriately!",
-                255 == result);
+        assertThat(result, equalTo(255));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -87,5 +88,16 @@ public class MP3ImplMockTest {
         //then
         verifyNoMoreInteractions(byteBufferMock);
 
+    }
+
+    @Test(expected = UnsupportedVersionException.class)
+    public void testDetermineFileVersion_blowsUpWithInvalidVersion() {
+        //given
+        byte version = 0xF;
+
+        //when
+        testObject.determineFileVersion(version);
+
+        //then
     }
 }

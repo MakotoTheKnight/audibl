@@ -3,6 +3,7 @@ package com.latlonproject.audio.id3.impl;
 import com.google.common.annotations.VisibleForTesting;
 import com.latlonproject.audio.generic.FieldValueImpl;
 import com.latlonproject.audio.generic.exception.InvalidMediaException;
+import com.latlonproject.audio.generic.exception.UnsupportedVersionException;
 import com.latlonproject.audio.id3.MP3;
 import com.latlonproject.audio.id3.metadata.enumeration.ID3Version;
 import com.latlonproject.audio.id3.metadata.field.MP3Field;
@@ -169,12 +170,16 @@ public class MP3Impl implements MP3 {
      */
 
     @VisibleForTesting
-     void determineFileVersion(final byte theVersionValue) {
+    void determineFileVersion(final byte theVersionValue) {
+        boolean valid = false;
         for(ID3Version version : ID3Version.values()) {
             if((theVersionValue ^ version.getVersionNum()) == 0) {
                 id3Version = version;
-                break;
+                valid = true;
             }
+        }
+        if(!valid) {
+            throw new UnsupportedVersionException("ID3 version " + theVersionValue + " not supported");
         }
     }
 
