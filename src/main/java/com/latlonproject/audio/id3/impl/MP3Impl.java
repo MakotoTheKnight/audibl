@@ -10,6 +10,8 @@ import com.latlonproject.audio.id3.metadata.field.MP3Field;
 import com.latlonproject.audio.metadata.enumeration.FormatType;
 import com.latlonproject.audio.metadata.field.Field;
 import com.latlonproject.audio.metadata.field.FieldValue;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.URI;
@@ -34,18 +36,19 @@ public class MP3Impl implements MP3 {
     private SeekableByteChannel fileByteChannel;
     private boolean isExperimental = false;
     private boolean readOnly = true;
+    private static final Logger LOG = LogManager.getLogger("MP3Parser");
 
     //TODO:  Abstract determining signature of file to factory?
     private final byte[] id3Signature = {'I', 'D', '3'};
 
     /**
      * Read in the file.  We're assuming that, at this level, the file exists.
-     * @param theFileUri
+     * @param path
      */
 
     @Override
-    public void read(final URI theFileUri) {
-        filePath = Paths.get(theFileUri);
+    public void read(final String path) {
+        filePath = Paths.get(path);
         try {
             fileByteChannel = Files.newByteChannel(filePath, EnumSet.of(StandardOpenOption.READ));
             int tagSize = readFileHeaders();
@@ -53,7 +56,9 @@ public class MP3Impl implements MP3 {
             parseFrameHeaders(tagBuffer);
             fileByteChannel.close();
         } catch (IOException e) {
-            throw new IllegalStateException("IOException occurred while establishing byte channel!\n" + e);
+            final IllegalStateException exception = new IllegalStateException("IOException occurred while establishing byte channel - in illegal state");
+            LOG.error("Illegal state!", e);
+            throw exception;
         }
 
     }
@@ -66,11 +71,12 @@ public class MP3Impl implements MP3 {
         ByteBuffer buffer = ByteBuffer.allocate(theTagSize);
         try {
             fileByteChannel.read(buffer);
-            // Delegate reading of frame headers
         } catch (IOException e) {
-            throw new IllegalStateException("Buffer allocated, but unable to populate milliseconds later\n" + e);
+            final IllegalStateException exception = new IllegalStateException("Buffer allocated, but unable to populate milliseconds later");
+            LOG.error("IOException occurred while allocating buffer - this is bad and unusual", exception);
+            throw exception;
         }
-        return buffer;
+        return (ByteBuffer) buffer.position(0);
     }
 
 
@@ -131,7 +137,7 @@ public class MP3Impl implements MP3 {
             isExperimental = (flags[0] & 0x02) >> 1 == 1;
             tagSize = fromSynchSafeInteger(size);
         } catch (IOException e) {
-            System.out.println("Fail!" + e);
+            LOG.error("Could not read file headers - either the file is corrupt or the file doesn't exist.", e);
         }
         return tagSize;
     }
@@ -179,6 +185,7 @@ public class MP3Impl implements MP3 {
             }
         }
         if(!valid) {
+            LOG.error("Unsupported ID3 version: {}", theVersionValue);
             throw new UnsupportedVersionException("ID3 version " + theVersionValue + " not supported");
         }
     }
@@ -205,8 +212,8 @@ public class MP3Impl implements MP3 {
     }
 
     @Override
-    public Set<FieldValue> getField(final Field theField) {
-        return fields.<Set<FieldValue>>get(theField);
+    public Set<FieldValue> getField(final Field field) {
+        return fields.<Set<FieldValue>>get(field);
     }
 
     @Override

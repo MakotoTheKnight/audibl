@@ -19,9 +19,9 @@ public interface Media {
 
     public FormatType getFormatType();
 
-    public Set<FieldValue> getField(Field theField);
+    public Set<FieldValue> getField(Field field);
 
-    public void read(URI theFileUri);
+    public void read(String path);
 
     public URI getFilePathURI();
 
