@@ -51,4 +51,9 @@ public class MP3Field implements Field {
     public String getFieldName() {
         return fieldName.name();
     }
+
+    @Override
+    public String toString() {
+        return String.format("[%s] - {%s}", fieldName.name(), fieldName.getCommonFieldName());
+    }
 }

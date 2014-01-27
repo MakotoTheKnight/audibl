@@ -4,9 +4,6 @@ import com.latlonproject.audio.id3.MP3;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
-import java.net.URI;
-
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;

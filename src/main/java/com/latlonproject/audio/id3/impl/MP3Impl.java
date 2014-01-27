@@ -2,12 +2,12 @@ package com.latlonproject.audio.id3.impl;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.latlonproject.audio.generic.FieldValueImpl;
+import com.latlonproject.audio.generic.MediaBase;
 import com.latlonproject.audio.generic.exception.InvalidMediaException;
 import com.latlonproject.audio.generic.exception.UnsupportedVersionException;
 import com.latlonproject.audio.id3.MP3;
 import com.latlonproject.audio.id3.metadata.enumeration.ID3Version;
 import com.latlonproject.audio.id3.metadata.field.MP3Field;
-import com.latlonproject.audio.metadata.enumeration.FormatType;
 import com.latlonproject.audio.metadata.field.Field;
 import com.latlonproject.audio.metadata.field.FieldValue;
 import org.apache.logging.log4j.LogManager;
@@ -18,21 +18,14 @@ import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.Map;
-import java.util.Set;
 
-public class MP3Impl implements MP3 {
+public class MP3Impl extends MediaBase implements MP3 {
 
-    private Map<Field, Set<FieldValue>> fields;
-    private Long fileSize;
-    private FormatType formatType;
     private ID3Version id3Version;
-    private Path filePath;
     private SeekableByteChannel fileByteChannel;
     private boolean isExperimental = false;
     private boolean readOnly = true;
@@ -101,9 +94,19 @@ public class MP3Impl implements MP3 {
             ByteBuffer frameBuffer = ByteBuffer.allocate(fieldLength);
             Field field = new MP3Field();
             FieldValue value = new FieldValueImpl();
-            field.setFieldName(new String(tag));
-            frameBuffer.get(byteField);
-            value.setValue(new String(byteField));
+            // TODO:  More elegant error case handling.
+            try {
+                field.setFieldName(new String(tag));
+                frameBuffer.get(byteField);
+                value.setValue(new String(byteField));
+                fieldMap.put(field, value);
+                System.out.println(fieldMap);
+            } catch (IllegalArgumentException e) {
+                LOG.warn("Illegal tag name: {}", new String(byteField));
+            } finally {
+                theBuffer.position(theBuffer.position() + fieldLength); // Advance past the remainder so we won't (potentially) read garbage
+            }
+
         }
     }
 
@@ -179,9 +182,10 @@ public class MP3Impl implements MP3 {
     void determineFileVersion(final byte theVersionValue) {
         boolean valid = false;
         for(ID3Version version : ID3Version.values()) {
-            if((theVersionValue ^ version.getVersionNum()) == 0) {
+            if((theVersionValue == version.getVersionNum())) {
                 id3Version = version;
                 valid = true;
+                break;
             }
         }
         if(!valid) {
@@ -195,26 +199,6 @@ public class MP3Impl implements MP3 {
         return id3Version;
     }
 
-
-    @Override
-    public Long getFileSize() {
-        return fileSize;
-    }
-
-    @Override
-    public Map<Field, Set<FieldValue>> getFieldMap() {
-        return fields;
-    }
-
-    @Override
-    public FormatType getFormatType() {
-        return formatType;
-    }
-
-    @Override
-    public Set<FieldValue> getField(final Field field) {
-        return fields.<Set<FieldValue>>get(field);
-    }
 
     @Override
     public URI getFilePathURI() {

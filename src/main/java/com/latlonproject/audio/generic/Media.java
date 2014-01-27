@@ -15,11 +15,11 @@ public interface Media {
 
     public boolean isReadOnly();
 
-    public Map<Field, Set<FieldValue>> getFieldMap();
+    public Map<Field, FieldValue> getFieldMap();
 
     public FormatType getFormatType();
 
-    public Set<FieldValue> getField(Field field);
+    public FieldValue getField(Field field);
 
     public void read(String path);
 
