@@ -3,13 +3,11 @@ package com.latlonproject.audio.generic;
 import com.latlonproject.audio.metadata.enumeration.FormatType;
 import com.latlonproject.audio.metadata.field.Field;
 import com.latlonproject.audio.metadata.field.FieldValue;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 public abstract class MediaBase implements Media {
 
@@ -47,7 +45,7 @@ public abstract class MediaBase implements Media {
 
     @Override
     public void read(String path) {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException("Override me!");
     }
 
     @Override
