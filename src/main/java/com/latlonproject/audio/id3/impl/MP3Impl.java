@@ -10,6 +10,7 @@ import com.latlonproject.audio.id3.metadata.enumeration.ID3Version;
 import com.latlonproject.audio.id3.metadata.field.MP3Field;
 import com.latlonproject.audio.metadata.field.Field;
 import com.latlonproject.audio.metadata.field.FieldValue;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -91,22 +92,20 @@ public class MP3Impl extends MediaBase implements MP3 {
             theBuffer.get(flags);
             int fieldLength = fromSynchSafeInteger(size);
             byte[] byteField = new byte[fieldLength];
-            ByteBuffer frameBuffer = ByteBuffer.allocate(fieldLength);
+//            ByteBuffer frameBuffer = ByteBuffer.allocate(fieldLength);
             Field field = new MP3Field();
             FieldValue value = new FieldValueImpl();
             // TODO:  More elegant error case handling.
             try {
-                field.setFieldName(new String(tag));
-                frameBuffer.get(byteField);
-                value.setValue(new String(byteField));
+                field.setFieldName(StringUtils.trim(new String(tag)));
+                theBuffer.get(byteField);
+                value.setValue(StringUtils.trim(new String(byteField)));
                 fieldMap.put(field, value);
-                System.out.println(fieldMap);
+                LOG.info(fieldMap);
             } catch (IllegalArgumentException e) {
-                LOG.warn("Illegal tag name: {}", new String(byteField));
-            } finally {
+                LOG.info("Illegal tag name: {}", StringUtils.deleteWhitespace(new String(byteField)));
                 theBuffer.position(theBuffer.position() + fieldLength); // Advance past the remainder so we won't (potentially) read garbage
             }
-
         }
     }
 

@@ -22,6 +22,7 @@ public class MP3Field implements Field {
         TPUB("publisher"),
         TSIZ("size"),
         TYER("year"),
+        TCON("content_type"),
 
         UFID("unique_identifier"),
         USER("terms"),
